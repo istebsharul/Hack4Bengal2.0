@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 class MakePaymentPage extends StatefulWidget {
@@ -11,6 +14,7 @@ class MakePaymentPage extends StatefulWidget {
 class _MakePaymentPageState extends State<MakePaymentPage> {
   stt.SpeechToText? _speechToText;
   String? _recognizedText;
+
   final TextEditingController _payerController = TextEditingController();
   final TextEditingController _payeeController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
@@ -67,6 +71,47 @@ class _MakePaymentPageState extends State<MakePaymentPage> {
     }
   }
 
+  void createPayment() async {
+    final payer = _payerController.text;
+    final payee = _payeeController.text;
+    final amount = double.parse(_amountController.text);
+
+    // Replace this with your actual logic for checking existing payee
+    final existingPayee = true;
+
+    if (existingPayee) {
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/payments'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'payer': payer,
+          'payee': payee,
+          'amount': amount,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _payerController.clear();
+        _payeeController.clear();
+        _amountController.clear();
+      }
+      // ignore: dead_code
+    } else {
+      final response = await http.post(
+        Uri.parse('http://localhost:5000/users'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': payee,
+          'available_amount': 0,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        createPayment();
+      }
+    }
+  }
+
   @override
   void dispose() {
     _payerController.dispose();
@@ -118,6 +163,10 @@ class _MakePaymentPageState extends State<MakePaymentPage> {
             ElevatedButton(
               onPressed: _startListening,
               child: const Text('Record Speech'),
+            ),
+            ElevatedButton(
+              onPressed: createPayment,
+              child: Text('Make Payment'),
             ),
           ],
         ),
